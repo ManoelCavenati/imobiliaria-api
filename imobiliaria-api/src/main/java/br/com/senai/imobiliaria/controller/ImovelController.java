@@ -6,6 +6,7 @@ import java.util.List;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -33,7 +34,16 @@ public class ImovelController {
     @Autowired
     private ModelMapper mapper;
 
+    @GetMapping
+    @PreAuthorize("hasRole('ROLE_USER')")
+    public ResponseEntity<List<ImovelResponse>> listar() {
+        var imoveis = service.consultar();
+        var resp = imoveis.stream().map(imovel -> mapper.map(imovel, ImovelResponse.class)).toList();
+        return ResponseEntity.ok().body(resp);
+    }
+
     @PostMapping
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<ImovelResponse> cadastrar(@RequestBody @Valid ImovelRequest request) {
         Imovel imovel = mapper.map(request, Imovel.class);
         service.cadastrar(imovel);
@@ -41,14 +51,8 @@ public class ImovelController {
         return ResponseEntity.created(URI.create(imovel.getCodigo().toString())).body(resp);
     }
 
-    @GetMapping
-    public ResponseEntity<List<ImovelResponse>> listar() {
-        var imoveis = service.consultar();
-        var resp = imoveis.stream().map(imovel -> mapper.map(imovel, ImovelResponse.class)).toList();
-        return ResponseEntity.ok().body(resp);
-    }
-
     @GetMapping("{codigo}")
+    @PreAuthorize("hasRole('ROLE_USER')")
     public ResponseEntity<ImovelResponse> consultarPeloCodigo(@PathVariable Integer codigo) {
         var imovel = service.consultar(codigo);
         var resp = mapper.map(imovel, ImovelResponse.class);
@@ -56,6 +60,7 @@ public class ImovelController {
     }
 
     @PutMapping("{codigo}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<ImovelResponse> atualizar(@PathVariable Integer codigo,
             @RequestBody @Valid ImovelAtualizacaoRequest request) {
         var imovel = mapper.map(request, Imovel.class);
@@ -66,9 +71,9 @@ public class ImovelController {
     }
 
     @DeleteMapping("{codigo}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<?> excluir(@PathVariable Integer codigo) {
         service.excluir(codigo);
         return ResponseEntity.noContent().build();
     }
-
 }
